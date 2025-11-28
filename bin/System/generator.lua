@@ -1,4 +1,4 @@
-OSD_cfg = "OSDSYS_video_mode = %s\n\z
+OSD_cfg_template = "OSDSYS_video_mode = %s\n\z
 OSDSYS_Inner_Browser = %i\n\z
 OSDSYS_selected_color = 0x%X,0x%X,0x%X,0x%X\n\z
 OSDSYS_unselected_color = 0x%X,0x%X,0x%X,0x%X\n\z
@@ -51,12 +51,24 @@ function read_file(path)
   return ret
 end
 
-local cfg_buffer = nil;
+local cfg_buf = nil;
 
-function getMostValues(buffer, key)
+function getNumberValue(buffer, key)
+local ret = tonumber(regex.search(buffer, ".*" .. key .. ".*?=[ \\t]*(.*?)\\n")[1])
+print(key .. " = " .. ret)
+return ret
+end
+
+function getTextValue(buffer, key)
   local ret = regex.search(buffer, ".*" .. key .. ".*?=[ \\t]*(.*?)\\n")[1]
   print(key .. " = " .. ret)
   return ret
+end
+
+function getBooleanValue(buffer, key)
+local ret = tonumber(regex.search(buffer, ".*" .. key .. ".*?=[ \\t]*(.*?)\\n")[1]) > 0
+print(key .. " = " .. tostring(ret))
+return ret
 end
 
 function getColorValue(buffer, key)
@@ -66,35 +78,35 @@ function getColorValue(buffer, key)
 end
 
 function loadCfg(path, version)
-  cfg_buffer = read_file(path)
-  if cfg_buffer == nil then return nil end
+  cfg_buf = read_file(path)
+  if cfg_buf == nil then return nil end
   if version == 0 then
-    OSDSYS_video_mode = getMostValues(cfg_buffer, "OSDSYS_video_mode")
-    OSDSYS_Inner_Browser = tonumber(getMostValues(cfg_buffer, "OSDSYS_Inner_Browser"))
-    OSDSYS_scroll_menu = tonumber(getMostValues(cfg_buffer, "OSDSYS_scroll_menu"))
-    OSDSYS_selected_color = getColorValue(cfg_buffer, "OSDSYS_selected_color")
-    OSDSYS_unselected_color = getColorValue(cfg_buffer, "OSDSYS_unselected_color")
-    OSDSYS_menu_x = tonumber(getMostValues(cfg_buffer, "OSDSYS_menu_x"))
-    OSDSYS_menu_y = tonumber(getMostValues(cfg_buffer, "OSDSYS_menu_y"))
-    OSDSYS_enter_x = tonumber(getMostValues(cfg_buffer, "OSDSYS_enter_x"))
-    OSDSYS_enter_y = tonumber(getMostValues(cfg_buffer, "OSDSYS_enter_y"))
-    OSDSYS_version_x = tonumber(getMostValues(cfg_buffer, "OSDSYS_version_x"))
-    OSDSYS_version_y = tonumber(getMostValues(cfg_buffer, "OSDSYS_version_y"))
-    OSDSYS_cursor_max_velocity = tonumber(getMostValues(cfg_buffer, "OSDSYS_cursor_max_velocity"))
-    OSDSYS_cursor_acceleration = tonumber(getMostValues(cfg_buffer, "OSDSYS_cursor_acceleration"))
-    OSDSYS_left_cursor = getMostValues(cfg_buffer, "OSDSYS_left_cursor")
-    OSDSYS_right_cursor = getMostValues(cfg_buffer, "OSDSYS_right_cursor")
-    OSDSYS_menu_top_delimiter = getMostValues(cfg_buffer, "OSDSYS_menu_top_delimiter")
-    OSDSYS_menu_bottom_delimiter = getMostValues(cfg_buffer, "OSDSYS_menu_bottom_delimiter")
-    OSDSYS_num_displayed_items = tonumber(getMostValues(cfg_buffer, "OSDSYS_num_displayed_items"))
-    OSDSYS_Skip_MC = tonumber(getMostValues(cfg_buffer, "OSDSYS_Skip_MC"))
-    OSDSYS_Skip_HDD = tonumber(getMostValues(cfg_buffer, "OSDSYS_Skip_HDD"))
-    OSDSYS_Skip_Disc = tonumber(getMostValues(cfg_buffer, "OSDSYS_Skip_Disc"))
-    OSDSYS_Skip_Logo = tonumber(getMostValues(cfg_buffer, "OSDSYS_Skip_Logo"))
-    cdrom_skip_ps2logo = tonumber(getMostValues(cfg_buffer, "cdrom_skip_ps2logo"))
-    cdrom_disable_gameid = tonumber(getMostValues(cfg_buffer, "cdrom_disable_gameid"))
-    cdrom_use_dkwdrv = tonumber(getMostValues(cfg_buffer, "cdrom_use_dkwdrv"))
-    app_gameid = tonumber(getMostValues(cfg_buffer, "app_gameid"))
+    OSDSYS_video_mode = getTextValue(cfg_buf, "OSDSYS_video_mode")
+    OSDSYS_Inner_Browser = getBooleanValue(cfg_buf, "OSDSYS_Inner_Browser")
+    OSDSYS_scroll_menu = getBooleanValue(cfg_buf, "OSDSYS_scroll_menu")
+    OSDSYS_selected_color = getColorValue(cfg_buf, "OSDSYS_selected_color")
+    OSDSYS_unselected_color = getColorValue(cfg_buf, "OSDSYS_unselected_color")
+    OSDSYS_menu_x = getNumberValue(cfg_buf, "OSDSYS_menu_x")
+    OSDSYS_menu_y = getNumberValue(cfg_buf, "OSDSYS_menu_y")
+    OSDSYS_enter_x = getNumberValue(cfg_buf, "OSDSYS_enter_x")
+    OSDSYS_enter_y = getNumberValue(cfg_buf, "OSDSYS_enter_y")
+    OSDSYS_version_x = getNumberValue(cfg_buf, "OSDSYS_version_x")
+    OSDSYS_version_y = getNumberValue(cfg_buf, "OSDSYS_version_y")
+    OSDSYS_cursor_max_velocity = getNumberValue(cfg_buf, "OSDSYS_cursor_max_velocity")
+    OSDSYS_cursor_acceleration = getNumberValue(cfg_buf, "OSDSYS_cursor_acceleration")
+    OSDSYS_left_cursor = getTextValue(cfg_buf, "OSDSYS_left_cursor")
+    OSDSYS_right_cursor = getTextValue(cfg_buf, "OSDSYS_right_cursor")
+    OSDSYS_menu_top_delimiter = getTextValue(cfg_buf, "OSDSYS_menu_top_delimiter")
+    OSDSYS_menu_bottom_delimiter = getTextValue(cfg_buf, "OSDSYS_menu_bottom_delimiter")
+    OSDSYS_num_displayed_items = getNumberValue(cfg_buf, "OSDSYS_num_displayed_items")
+    OSDSYS_Skip_MC = getBooleanValue(cfg_buf, "OSDSYS_Skip_MC")
+    OSDSYS_Skip_HDD = getBooleanValue(cfg_buf, "OSDSYS_Skip_HDD")
+    OSDSYS_Skip_Disc = getBooleanValue(cfg_buf, "OSDSYS_Skip_Disc")
+    OSDSYS_Skip_Logo = getBooleanValue(cfg_buf, "OSDSYS_Skip_Logo")
+    cdrom_skip_ps2logo = getBooleanValue(cfg_buf, "cdrom_skip_ps2logo")
+    cdrom_disable_gameid = getBooleanValue(cfg_buf, "cdrom_disable_gameid")
+    cdrom_use_dkwdrv = getBooleanValue(cfg_buf, "cdrom_use_dkwdrv")
+    app_gameid = getBooleanValue(cfg_buf, "app_gameid")
   end
   return version
 end
