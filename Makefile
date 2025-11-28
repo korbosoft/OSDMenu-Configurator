@@ -18,7 +18,7 @@ EE_BIN_PKD = $(BINDIR)OSDMenu-Configurator.elf_pkd.elf
 
 EE_LIBS = -L$(PS2SDK)/ports/lib -L$(PS2DEV)/gsKit/lib/ -Lmodules/ds34bt/ee/ -Lmodules/ds34usb/ee/ \
 	-lpatches -lfileXio -lpad -ldebug -llua -lmath3d -ljpeg -lfreetype -lgskit_toolkit -lgskit -ldmakit \
-	-lpng -lz -lmc -laudsrv -lelf-loader -lds34bt -lds34usb
+	-lpng -lz -lmc -laudsrv -lelf-loader -lds34bt -lds34usb -lstdc++
 
 EE_INCS += -I$(PS2DEV)/gsKit/include -I$(PS2SDK)/ports/include -I$(PS2SDK)/ports/include/freetype2 -I$(PS2SDK)/ports/include/zlib
 
@@ -47,7 +47,7 @@ APP_CORE = main.o system.o pad.o graphics.o render.o \
 
 LUA_LIBS =	player.o sound.o controls.o \
 			timer.o Screen.o graphics.o \
-			system.o Render.o
+			system.o Render.o regex.o
 
 IOP_MODULES = iomanX.o fileXio.o \
 			  sio2man.o mcman.o mcserv.o padman.o libsd.o \

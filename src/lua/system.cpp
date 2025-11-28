@@ -31,7 +31,7 @@ static int lua_getCurrentDirectory(lua_State *L)
 
 static int lua_setCurrentDirectory(lua_State *L)
 {
-        static char temp_path[256];
+    static char temp_path[256];
 	const char *path = luaL_checkstring(L, 1);
 	if(!path) return luaL_error(L, "Argument error: System.currentDirectory(file) takes a filename as string as argument.");
 
@@ -89,7 +89,7 @@ static int lua_dir(lua_State *L)
 	int argc = lua_gettop(L);
 	if (argc != 0 && argc != 1) return luaL_error(L, "Argument error: System.listDirectory([path]) takes zero or one argument.");
 
-        const char *temp_path = "";
+    const char *temp_path = "";
 	char path[255];
 
 	getcwd((char *)path, 256);

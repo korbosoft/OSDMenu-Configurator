@@ -44,7 +44,7 @@ path_DKWDRV_ELF = %s\n\z
 -- # --------------------------------------------------
 
 function read_file(path)
-  local file = System.openFile(filename, "r")
+  local file = System.openFile(path, O_RDONLY)
   if (file == nil) then return nil end
   local ret = System.readFile(file, System.sizeFile(file))
   System.closeFile(file)
@@ -54,15 +54,15 @@ end
 local cfg_buffer = nil;
 
 function getMostValues(buffer, key)
-  return string.match(buffer, ".*" .. key .. ".*?=[ %t]*(.*?)%n")
+  local ret = regex.search(buffer, ".*" .. key .. ".*?=[ \\t]*(.*?)\\n")[1]
+  print(key .. " = " .. ret)
+  return ret
 end
 
 function getColorValue(buffer, key)
-  r = tonumber(string.match(buffer, ".*" .. key .. ".*?=[ %t]*(.*?),"))
-  g = tonumber(string.match(buffer, ".*" .. key .. ".*?=(?:[ %t]*.*?,)[ %t]*(.*?),"))
-  b = tonumber(string.match(buffer, ".*" .. key .. ".*?=(?:[ %t]*.*?,){2}[ %t]*(.*?),"))
-  a = tonumber(string.match(buffer, ".*" .. key .. ".*?=(?:[ %t]*.*?,){3}[ %t]*(.*?)%n"))
-  return Color.new(r, g, b, a)
+  local matches = regex.search(buffer, ".*" .. key .. ".*?(0x..).*?(0x..).*?(0x..).*?(0x..)")
+
+  return Color.new(matches[1], matches[2], matches[3], matches[4])
 end
 
 function loadCfg(path, version)
