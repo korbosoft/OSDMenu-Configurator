@@ -59,13 +59,13 @@ function parseConfig(data)
   for line in data:gmatch("([^\n]*)\n?") do
     local key
     local value
-    print(line)
+--     print(line)
     -- Match the key and value in the line
     local results = regex.search(line, "^(?!#)([^=]+?)\\s*?=\\s*(.*)")
     if results ~= nil then
       key = results[1]
       value = results[2]
-      print(key .. "=" .. value)
+--       print(key .. "=" .. value)
     end
     if key and value then
       if config[key] then
@@ -83,18 +83,18 @@ end
 
 function getNumberValue(key)
   local ret = tonumber(config[key])
-  print(key .. " = " .. ret)
+--   print(key .. " = " .. ret)
   return ret
 end
 
 function getTextValue(key)
   local ret = config[key]
-  print(key .. " = " .. ret)
+--   print(key .. " = " .. ret)
   return ret
 end
 
 function getBooleanValue(key)
-  print(tonumber(config[key]))
+--   print(tonumber(config[key]))
   local ret = tonumber(config[key]) > 0
   return ret
 end

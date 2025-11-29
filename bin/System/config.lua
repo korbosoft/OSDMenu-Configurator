@@ -33,5 +33,11 @@ OSDSYS_Skip_Logo = 1
 
 cdrom_skip_ps2logo = 1
 cdrom_disable_gameid = 0
+
 cdrom_use_dkwdrv = 0
+ps1drv_enable_fast = 0
+ps1drv_enable_smooth = 0
+ps1drv_use_ps1vn = 0
+path_DKWDRV_ELF = "mc?:/BOOT/DKWDRV.ELF"
+
 app_gameid = 0
