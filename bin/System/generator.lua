@@ -43,7 +43,7 @@ path_DKWDRV_ELF = %s\n\z
 -- path1_OSDSYS_ITEM_250 = POWEROFF
 -- # --------------------------------------------------
 
-function read_file(path)
+function readFile(path)
   local file = System.openFile(path, O_RDONLY)
   if (file == nil) then return nil end
   local ret = System.readFile(file, System.sizeFile(file))
@@ -53,60 +53,90 @@ end
 
 local cfg_buf = nil;
 
-function getNumberValue(buffer, key)
-local ret = tonumber(regex.search(buffer, ".*" .. key .. ".*?=[ \\t]*(.*?)\\n")[1])
-print(key .. " = " .. ret)
-return ret
+config = {}
+
+function parseConfig(data)
+  for line in data:gmatch("([^\n]*)\n?") do
+    local key
+    local value
+    print(line)
+    -- Match the key and value in the line
+    local results = regex.search(line, "^(?!#)([^=]+?)\\s*?=\\s*(.*)")
+    if results ~= nil then
+      key = results[1]
+      value = results[2]
+      print(key .. "=" .. value)
+    end
+    if key and value then
+      if config[key] then
+        if type(config[key]) == "table" then
+          table.insert(config[key], value)
+        else
+          config[key] = {config[key], value}
+        end
+      else
+        config[key] = value
+      end
+    end
+  end
 end
 
-function getTextValue(buffer, key)
-  local ret = regex.search(buffer, ".*" .. key .. ".*?=[ \\t]*(.*?)\\n")[1]
+function getNumberValue(key)
+  local ret = tonumber(config[key])
   print(key .. " = " .. ret)
   return ret
 end
 
-function getBooleanValue(buffer, key)
-local ret = tonumber(regex.search(buffer, ".*" .. key .. ".*?=[ \\t]*(.*?)\\n")[1]) > 0
-print(key .. " = " .. tostring(ret))
-return ret
+function getTextValue(key)
+  local ret = config[key]
+  print(key .. " = " .. ret)
+  return ret
 end
 
-function getColorValue(buffer, key)
-  local matches = regex.search(buffer, ".*" .. key .. ".*?(0x..).*?(0x..).*?(0x..).*?(0x..)")
+function getBooleanValue(key)
+  print(tonumber(config[key]))
+  local ret = tonumber(config[key]) > 0
+  return ret
+end
+
+function getColorValue(key)
+  local matches = regex.search(config[key], "(0x..).*?(0x..).*?(0x..).*?(0x..)")
 
   return Color.new(matches[1], matches[2], matches[3], matches[4])
 end
 
 function loadCfg(path, version)
-  cfg_buf = read_file(path)
+  cfg_buf = readFile(path)
+  parseConfig(cfg_buf)
+
   if cfg_buf == nil then return nil end
   if version == 0 then
-    OSDSYS_video_mode = getTextValue(cfg_buf, "OSDSYS_video_mode")
-    OSDSYS_Inner_Browser = getBooleanValue(cfg_buf, "OSDSYS_Inner_Browser")
-    OSDSYS_scroll_menu = getBooleanValue(cfg_buf, "OSDSYS_scroll_menu")
-    OSDSYS_selected_color = getColorValue(cfg_buf, "OSDSYS_selected_color")
-    OSDSYS_unselected_color = getColorValue(cfg_buf, "OSDSYS_unselected_color")
-    OSDSYS_menu_x = getNumberValue(cfg_buf, "OSDSYS_menu_x")
-    OSDSYS_menu_y = getNumberValue(cfg_buf, "OSDSYS_menu_y")
-    OSDSYS_enter_x = getNumberValue(cfg_buf, "OSDSYS_enter_x")
-    OSDSYS_enter_y = getNumberValue(cfg_buf, "OSDSYS_enter_y")
-    OSDSYS_version_x = getNumberValue(cfg_buf, "OSDSYS_version_x")
-    OSDSYS_version_y = getNumberValue(cfg_buf, "OSDSYS_version_y")
-    OSDSYS_cursor_max_velocity = getNumberValue(cfg_buf, "OSDSYS_cursor_max_velocity")
-    OSDSYS_cursor_acceleration = getNumberValue(cfg_buf, "OSDSYS_cursor_acceleration")
-    OSDSYS_left_cursor = getTextValue(cfg_buf, "OSDSYS_left_cursor")
-    OSDSYS_right_cursor = getTextValue(cfg_buf, "OSDSYS_right_cursor")
-    OSDSYS_menu_top_delimiter = getTextValue(cfg_buf, "OSDSYS_menu_top_delimiter")
-    OSDSYS_menu_bottom_delimiter = getTextValue(cfg_buf, "OSDSYS_menu_bottom_delimiter")
-    OSDSYS_num_displayed_items = getNumberValue(cfg_buf, "OSDSYS_num_displayed_items")
-    OSDSYS_Skip_MC = getBooleanValue(cfg_buf, "OSDSYS_Skip_MC")
-    OSDSYS_Skip_HDD = getBooleanValue(cfg_buf, "OSDSYS_Skip_HDD")
-    OSDSYS_Skip_Disc = getBooleanValue(cfg_buf, "OSDSYS_Skip_Disc")
-    OSDSYS_Skip_Logo = getBooleanValue(cfg_buf, "OSDSYS_Skip_Logo")
-    cdrom_skip_ps2logo = getBooleanValue(cfg_buf, "cdrom_skip_ps2logo")
-    cdrom_disable_gameid = getBooleanValue(cfg_buf, "cdrom_disable_gameid")
-    cdrom_use_dkwdrv = getBooleanValue(cfg_buf, "cdrom_use_dkwdrv")
-    app_gameid = getBooleanValue(cfg_buf, "app_gameid")
+    OSDSYS_video_mode = getTextValue("OSDSYS_video_mode")
+    OSDSYS_Inner_Browser = getBooleanValue("OSDSYS_Inner_Browser")
+    OSDSYS_scroll_menu = getBooleanValue("OSDSYS_scroll_menu")
+    OSDSYS_selected_color = getColorValue("OSDSYS_selected_color")
+    OSDSYS_unselected_color = getColorValue("OSDSYS_unselected_color")
+    OSDSYS_menu_x = getNumberValue("OSDSYS_menu_x")
+    OSDSYS_menu_y = getNumberValue("OSDSYS_menu_y")
+    OSDSYS_enter_x = getNumberValue("OSDSYS_enter_x")
+    OSDSYS_enter_y = getNumberValue("OSDSYS_enter_y")
+    OSDSYS_version_x = getNumberValue("OSDSYS_version_x")
+    OSDSYS_version_y = getNumberValue("OSDSYS_version_y")
+    OSDSYS_cursor_max_velocity = getNumberValue("OSDSYS_cursor_max_velocity")
+    OSDSYS_cursor_acceleration = getNumberValue("OSDSYS_cursor_acceleration")
+    OSDSYS_left_cursor = getTextValue("OSDSYS_left_cursor")
+    OSDSYS_right_cursor = getTextValue("OSDSYS_right_cursor")
+    OSDSYS_menu_top_delimiter = getTextValue("OSDSYS_menu_top_delimiter")
+    OSDSYS_menu_bottom_delimiter = getTextValue("OSDSYS_menu_bottom_delimiter")
+    OSDSYS_num_displayed_items = getNumberValue("OSDSYS_num_displayed_items")
+    OSDSYS_Skip_MC = getBooleanValue("OSDSYS_Skip_MC")
+    OSDSYS_Skip_HDD = getBooleanValue("OSDSYS_Skip_HDD")
+    OSDSYS_Skip_Disc = getBooleanValue("OSDSYS_Skip_Disc")
+    OSDSYS_Skip_Logo = getBooleanValue("OSDSYS_Skip_Logo")
+    cdrom_skip_ps2logo = getBooleanValue("cdrom_skip_ps2logo")
+    cdrom_disable_gameid = getBooleanValue("cdrom_disable_gameid")
+    cdrom_use_dkwdrv = getBooleanValue("cdrom_use_dkwdrv")
+    app_gameid = getBooleanValue("app_gameid")
   end
   return version
 end
