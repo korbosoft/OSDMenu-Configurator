@@ -18,7 +18,7 @@ EE_BIN_PKD = $(BINDIR)OSDMenu-Configurator.elf_pkd.elf
 
 EE_LIBS = -L$(PS2SDK)/ports/lib -L$(PS2DEV)/gsKit/lib/ -Lmodules/ds34bt/ee/ -Lmodules/ds34usb/ee/ \
 	-lpatches -lfileXio -lpad -ldebug -llua -lmath3d -ljpeg -lfreetype -lgskit_toolkit -lgskit -ldmakit \
-	-lpng -lz -lmc -laudsrv -lelf-loader -lds34bt -lds34usb -lstdc++
+	-lpng -lz -lmc -laudsrv -lelf-loader -lds34bt -lds34usb -lstdc++ -lhdd
 
 EE_INCS += -I$(PS2DEV)/gsKit/include -I$(PS2SDK)/ports/include -I$(PS2SDK)/ports/include/freetype2 -I$(PS2SDK)/ports/include/zlib
 
@@ -47,12 +47,13 @@ APP_CORE = main.o system.o pad.o graphics.o render.o \
 
 LUA_LIBS =	player.o sound.o controls.o \
 			timer.o Screen.o graphics.o \
-			system.o Render.o regex.o
+			system.o Render.o Regex.o
 
 IOP_MODULES = iomanX.o fileXio.o \
 			  sio2man.o mcman.o mcserv.o padman.o libsd.o \
 			  usbd.o audsrv.o bdm.o bdmfs_fatfs.o \
-			  usbmass_bd.o cdfs.o ds34bt.o ds34usb.o
+			  usbmass_bd.o cdfs.o ds34bt.o ds34usb.o \
+			  ps2dev9.o ps2atad.o ps2hdd.o ps2fs.o
 
 EMBEDDED_RSC = boot.o
 
@@ -98,7 +99,7 @@ vpath %.irx embed/iop/
 vpath %.irx modules/ds34bt/iop/
 vpath %.irx modules/ds34usb/iop/
 vpath %.irx $(PS2SDK)/iop/irx/
-IRXTAG = $(notdir $(addsuffix _irx, $(basename $<)))
+IRXTAG = $(notdir $(subst -,_,$(addsuffix _irx, $(basename $<))))
 $(EE_ASM_DIR)%.c: %.irx
 	$(DIR_GUARD)
 	$(BIN2S) $< $@ $(IRXTAG)

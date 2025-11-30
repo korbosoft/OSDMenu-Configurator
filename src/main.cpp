@@ -7,8 +7,11 @@
 #include <libcdvd.h>
 #include <iopheap.h>
 #include <iopcontrol.h>
+#include <iopcontrol_special.h>
 #include <smod.h>
+#include <usbhdfsd-common.h>
 #include <audsrv.h>
+#include <hdd-ioctl.h>
 #include <sys/stat.h>
 
 #include <dirent.h>
@@ -53,11 +56,19 @@ IMPORT_BIN2C(audsrv_irx);
 IMPORT_BIN2C(ds34usb_irx);
 IMPORT_BIN2C(ds34bt_irx);
 
+IMPORT_BIN2C(ps2dev9_irx);
+IMPORT_BIN2C(ps2atad_irx);
+IMPORT_BIN2C(ps2hdd_irx);
+IMPORT_BIN2C(ps2fs_irx);
+
 #ifdef POWERPC_UART
 IMPORT_BIN2C(ppctty_irx);
 #endif
 
 char boot_path[255];
+
+bool HDD_USABLE = false;
+bool dev9_loaded = false;
 
 void initMC(void)
 {
@@ -92,6 +103,64 @@ int HAVE_FILEXIO = 0;
     ID = SifExecModuleBuffer(&_irx, size_##_irx, argc, arglist, &RET); \
     printf("%s: id:%d, ret:%d\n", #_irx, ID, RET)
 #define LOAD_IRX_NARG(_irx) LOAD_IRX(_irx, 0, NULL)
+
+
+static int CheckHDD(void) {
+    int ret = fileXioDevctl("hdd0:", HDIOC_STATUS, NULL, 0, NULL, 0);
+    /* 0 = HDD connected and formatted, 1 = not formatted, 2 = HDD not usable, 3 = HDD not connected. */
+    printf("%s: HDD status is %d\n", __func__, ret);
+    if ((ret >= 3) || (ret < 0))
+        return -1;
+    return ret;
+}
+
+int loadDEV9()
+{
+    if (!dev9_loaded)
+    {
+        int ID, RET;
+        LOAD_IRX_NARG(ps2dev9_irx);
+        if (ID < 0 || RET == 1) // ID smaller than 0: issue reported from modload | RET == 1: driver returned no resident end
+            return 0;
+        dev9_loaded = true;
+    }
+    return 1;
+}
+
+int LoadHDDIRX(void)
+{
+    int ID, RET, HDDSTAT;
+    static const char hddarg[] = "-o" "\0" "4" "\0" "-n" "\0" "20";
+    static const char pfsarg[] = "-m" "\0" "4" "\0" "-o" "\0" "10" "\0" "-n" "\0" "40";
+
+    /* PS2DEV9.IRX */
+    if (!loadDEV9())
+        return -1;
+
+    /* PS2ATAD.IRX */
+    LOAD_IRX_NARG(ps2atad_irx);
+    if (ID < 0 || RET == 1)
+        return -2;
+
+    /* PS2HDD.IRX */
+    LOAD_IRX(ps2hdd_irx, sizeof(hddarg), hddarg);
+    if (ID < 0 || RET == 1)
+        return -3;
+
+    /* Check if HDD is formatted and ready to be used */
+    HDDSTAT = CheckHDD();
+    HDD_USABLE = (HDDSTAT == 0 || HDDSTAT == 1); // ONLY if HDD is usable. as we will offer HDD Formatting operation
+
+    /* PS2FS.IRX */
+    if (HDD_USABLE)
+    {
+        LOAD_IRX(ps2fs_irx, sizeof(pfsarg), pfsarg);
+        if (ID < 0 || RET == 1)
+            return -5;
+    }
+
+    return 0;
+}
 
 int main(int argc, char * argv[])
 {
@@ -151,8 +220,12 @@ int main(int argc, char * argv[])
     LOAD_IRX_NARG(bdm_irx);
     LOAD_IRX_NARG(bdmfs_fatfs_irx);
     LOAD_IRX_NARG(usbmass_bd_irx);
-    
+
     LOAD_IRX_NARG(cdfs_irx);
+
+    if (HAVE_FILEXIO)
+        LoadHDDIRX();
+
     sceCdInit(SCECdINoD);
     
 
@@ -188,7 +261,7 @@ int main(int argc, char * argv[])
     
     while (1)
     {
-    
+
         // if no parameters are specified, use the default boot
         if (argc < 2) {
             errMsg = runScript(bootString, true); 
@@ -218,4 +291,3 @@ int main(int argc, char * argv[])
 
 	return 0;
 }
-

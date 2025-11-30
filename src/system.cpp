@@ -66,11 +66,11 @@ char* __ps2_normalize_path(char *path_name)
 		if(!out[next]) break;
 	}
 
-	/* Remove trailing "/" */
-	for(i=1; out[i]; i++)
-		continue;
-	if(i >= 1 && out[i-1] == '/') 
-		out[i-1] = 0;
+	// /* Remove trailing "/" */
+	// for(i=1; out[i]; i++)
+	// 	continue;
+	// if(i >= 1 && out[i-1] == '/')
+	// 	out[i-1] = 0;
 
 	return (char*)out;
 }

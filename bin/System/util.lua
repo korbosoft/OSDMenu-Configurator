@@ -2,6 +2,10 @@ function ifBool(bool, on, off)
   return bool and on or off
 end
 
+function ifTable(index, values)
+  return values[index]
+end
+
 function manual_gsub(s, pattern, replacement) -- using gsub the way i was in doKeyboard had been causing a buffer overflow
 local result = ""
 local last_pos = 1

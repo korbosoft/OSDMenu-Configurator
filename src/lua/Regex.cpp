@@ -25,7 +25,7 @@ static int lua_search(lua_State *L) {
 }
 
 
-static const luaL_Reg regex_functions[] = {
+static const luaL_Reg Regex_functions[] = {
     {"search",              lua_search},
 };
 
@@ -33,8 +33,8 @@ static const luaL_Reg regex_functions[] = {
 
 void luaRegex_init(lua_State *L) {
     lua_newtable(L);
-    luaL_setfuncs(L, regex_functions, 0);
-    lua_setglobal(L, "regex");
+    luaL_setfuncs(L, Regex_functions, 0);
+    lua_setglobal(L, "Regex");
 
     // LUA_FORWARD_INTMACRO(PAD_SELECT);
 }

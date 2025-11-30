@@ -1,3 +1,8 @@
+OSD_cfg_path = ":/SYS-CONF/OSDMENU.CNF"
+HOSD_cfg_path = "hdd0:__sysconf/osdmenu/OSDMENU.CNF"
+MBR_cfg_path = "hdd0:__sysconf/osdmenu/OSDMBR.CNF"
+GSM_cfg_path = ":/SYS-CONF/OSDGSM.CNF"
+HGSM_cfg_path = "hdd0:__sysconf/osdmenu/OSDGSM.CNF"
 OSD_cfg_template = "OSDSYS_video_mode = %s\n\z
 OSDSYS_Inner_Browser = %i\n\z
 OSDSYS_selected_color = 0x%X,0x%X,0x%X,0x%X\n\z
@@ -45,7 +50,7 @@ path_DKWDRV_ELF = %s\n\z
 
 function readFile(path)
   local file = System.openFile(path, O_RDONLY)
-  if (file == nil) then return nil end
+  if (file == -1) then return nil end
   local ret = System.readFile(file, System.sizeFile(file))
   System.closeFile(file)
   return ret
