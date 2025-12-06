@@ -16,7 +16,6 @@ bin/mods/test2.lua
 bin/reloader.lua
 bin/rl_intro.lua
 bin/SLUS_209.46
-bin/System/index.lua
 *.elf
 *.o
 *.adp
