@@ -29,7 +29,7 @@ char* __ps2_normalize_path(char *path_name)
 
 	/* Convert "//" to "/" */
 	for(i=0; out[i+1]; i++) {
-		if(out[i]=='/' && out[i+1]=='/') {
+		if((out[i]=='/' && out[i+1]=='/') || (out[i]=='\\' && out[i+1]=='\\')) {
 			for(j=i+1; out[j]; j++)
 				out[j] = out[j+1];
 			i--;

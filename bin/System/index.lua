@@ -156,7 +156,7 @@ function doNumpad(title, starting_num, signed)
     local x = (selected_key - 1) % 3 + 1
     local y = (selected_key - 1) // 3 + 1
 
-    local character = string.sub(keys[y], x, x)
+    local character = keys[y]:sub(x, x)
     if character == "\0" then
       exit = true
     else
@@ -286,7 +286,7 @@ function doKeyboard(title, starting_str, special)
     local x = (selected_key - 1) % 13 + 1
     local y = (selected_key - 1) // 13 + 1
 
-    local character = string.sub(key[layer][y], x, x)
+    local character = keys[y]:sub(x, x)
     if character == "\0" then
       exit = true
     elseif character == "\1" then
@@ -324,7 +324,13 @@ function doFileSelect(title, starting_dir)
   local dir = starting_dir
   local ret
   repeat
-    if (dir == nil) or (dir == System.currentDirectory()) then
+    if (dir ~= nil) then
+      last_dir = System.currentDirectory()
+      print(last_dir)
+      System.currentDirectory(dir)
+      dir_path = System.currentDirectory()
+    end
+    if (dir == nil) or (dir_path == last_dir) then
       local ret = doTextMenu(title, {
         {"mc0:/", "Memory Card 1", checkDevice("mc0:/")},
         {"mc1:/", "Memory Card 2", checkDevice("mc1:/")},
@@ -337,20 +343,20 @@ function doFileSelect(title, starting_dir)
       elseif ret == 2 then
         dir = "mc1:/"
       elseif ret == 3 then
-        dir = "hdd0:"
+        dir = "hdd0:/"
       end
-      System.currentDirectory(dir)
     end
-    ret = doFileMenu(title, System.listDirectory(), System.currentDirectory())
+    System.currentDirectory(dir)
+    ret = doFileMenu(title, System.listDirectory(), System.currentDirectory(), dir:sub(1, 3) == "hdd")
     if ret[2] then
-      dir = System.currentDirectory(ret[1])
+      dir = ret[1]
     else
       return ret[1]
     end
   until false
 end
 
-function doFileMenu(title, dir, path)
+function doFileMenu(title, dir, path, hdd)
   local item_count = #dir
 
   local seperator = ifBool(hdd, "\\", "/")
@@ -400,7 +406,7 @@ function doFileMenu(title, dir, path)
 
   until Pads.check(pad, PAD_CROSS) and not Pads.check(last_pad, PAD_CROSS)
   if selected_item == 0 then return {".." .. seperator, true} end
-  return {path .. seperator .. dir[selected_item].name, dir[selected_item].directory}
+  return {path .. ifBool(path:sub(#path, #path) == seperator, "", seperator) .. dir[selected_item].name, dir[selected_item].directory}
 end
 
 function doTextMenu(title, menu_items, initial_selection)
@@ -506,10 +512,10 @@ function OSDM_PS1(initial_selection)
       {"Use PS1VModeNeg: " .. ifBool(ps1drv_use_ps1vn, "On", "Off"), "Custom path to DKWDRV.ELF. The path MUST be on the memory card.", not cdrom_use_dkwdrv}
     }, initial_selection)
     if ret == 2 then
-      path_DKWDRV_ELF = doKeyboard("DKWDRV Path", path_DKWDRV_ELF, false)
---       if result ~= nil then
---         path_DKWDRV_ELF = result
---       end
+      result = doFileSelect("DKWDRV Path", path_DKWDRV_ELF)
+      if result ~= nil then
+        path_DKWDRV_ELF = result
+      end
     elseif ret == 3 then
       ps1drv_enable_fast = not ps1drv_enable_fast
     elseif ret == 4 then
@@ -617,14 +623,13 @@ end
 -- loadCfg("mc0:/SYS-CONF/OSDMENU.CNF", 0)
 
 -- int = 12345
-str = "test"
+-- str = "test"
 while true do
   Screen.clear()
 --   doKeyboard("Keyboard Test 1", "12345", true)
 --   int = doNumpad("Keyboard Test 2", int, false)
---   print(system.listDirectory())
-  str = doFileSelect(str)
---   newMenu(Menu_ids.ROOT, 1)
+--   str = doFileSelect(str, "mc0:/")
+  newTextMenu(Menu_ids.ROOT, 1)
   Screen.flip()
   --Screen.waitVblankStart()
 end
