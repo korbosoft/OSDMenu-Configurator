@@ -34,6 +34,7 @@ r1 = LoadImageHelper("assets/R1.png")
 -- r3 = LoadImageHelper("assets/R3.png")
 
 disabled_selected_color = Color.new(128, 128, 128, 128)
+error_color = Color.new(255, 90, 90, 128)
 disabled_unselected_color = Color.new(64, 64, 64, 64)
 
 screen_mode = Screen.getMode()
@@ -44,7 +45,24 @@ ret = nil
 
 osdmenu_variant = 0
 
--- part
+Control_sets = {
+  ENTER_BACK = {
+    {x = 32, y = -64, label = "  Enter", icons = {{tex = cross}}},
+    {x = -144, y = -64, label = "  Back", icons = {{tex = circle}}}
+  },
+  DIR_TREE = {
+    {x = 32, y = -64, label = "  Enter", icons = {{tex = cross}}},
+    {x = -112, y = -64, label = "  Up", icons = {{tex = triangle}}}
+  },
+  KEY_INPUT = {
+    {x = 32, y = -64, label = "  Enter", icons = {{tex = cross}}},
+    {x = -208, y = -64, label = "  Cancel", icons = {{tex = circle}}},
+    {x = -214, y = 32, label = "    Cursor", icons = {{tex = l1}, {tex = r1, x = -177.6}}}
+  },
+  OK = {
+    {x = 32, y = -64, label = "  OK", icons = {{tex = cross}}}
+  }
+}
 
 Exit_type = {
   NEW_MENU = 0,
@@ -60,8 +78,37 @@ Menu_ids = {
   MENU_ITEMS = 5
 }
 
+function showControls(control_set)
+  for i = 1, #control_set do
+    Font.fmPrint(
+      ifBool(control_set[i].x < 0, screen_mode.width + control_set[i].x, control_set[i].x),
+      ifBool(control_set[i].y < 0, screen_mode.height + control_set[i].y, control_set[i].y),
+      1,
+      control_set[i].label
+    )
+    for j = 1, #control_set[i].icons do
+      local x = ifBool(control_set[i].icons[j].x, control_set[i].icons[j].x, control_set[i].x)
+      local y = ifBool(control_set[i].icons[j].y, control_set[i].icons[j].y, control_set[i].y)
+
+      if x < 0 then x = screen_mode.width + x end
+      if y < 0 then y = screen_mode.height + y end
+
+      Graphics.drawImage(
+        control_set[i].icons[j].tex,
+        x,
+        y - 4
+      )
+    end
+  end
+end
+
+function getPad()
+  last_pad = ifBool(not pad, Pads.get(), pad)
+  pad = Pads.get()
+end
+
 function breakString(index, str)
-  if str == nil then return "" end
+  if not str then return "" end
   if index <= #str + 1 then str = str:sub(1, index - 1) .. "\n" .. str:sub(index, -1) end
   return str
 end
@@ -70,7 +117,7 @@ function doNumpad(title, starting_num, signed)
   local exit = false
   local num = starting_num
   local str
-  if (num ~= nil) and (num ~= 1e309) and (num ~= -1e309) then
+  if num and (num ~= -math.huge) and (num ~= math.huge) then
     str = string.format("%.f", num)
   else
     str = "";
@@ -104,23 +151,16 @@ function doNumpad(title, starting_num, signed)
             Font.fmPrint(4.7 + 45.83333333 * 2, 320, 1, "OK", ifBool(current_key == selected_key, OSDSYS_selected_color, OSDSYS_unselected_color))
           elseif current_key == 15 then
           else
-            if ((current_key == 10) and signed) or current_key ~= 10 then
+            if (current_key == 10) and signed or current_key ~= 10 then
               Font.fmPrint(32 + 45.83333333 * (x - 1), 128 + 48 * y, 1, string.sub(keys[y+1], x, x), ifBool(current_key == selected_key, OSDSYS_selected_color, OSDSYS_unselected_color))
             end
           end
         end
       end
 
-      Font.fmPrint(32, screen_mode.height - 64, 1, "  Enter")
-      Graphics.drawImage(cross, 32, screen_mode.height - 68)
-      Font.fmPrint(screen_mode.width - 144, screen_mode.height - 64, 1, "  Back")
-      Graphics.drawImage(circle, screen_mode.width - 144, screen_mode.height - 68)
-      Font.fmPrint(screen_mode.width - 214, 32, 1, "    Cursor")
-      Graphics.drawImage(l1, screen_mode.width - 214, 28)
-      Graphics.drawImage(r1, screen_mode.width - 177.6, 28)
+      showControls(Control_sets.KEY_INPUT)
 
-      last_pad = ifBool(pad == nil, Pads.get(), pad)
-      pad = Pads.get()
+      getPad()
 
       if Pads.check(pad, PAD_UP) and not Pads.check(last_pad, PAD_UP) then
         if selected_key > 3 then selected_key = selected_key - 3 end
@@ -176,7 +216,7 @@ function doNumpad(title, starting_num, signed)
   until exit
 
   num = tonumber(str)
-  if (num ~= nil) and (num ~= math.huge) and (num ~= -math.huge) then
+  if num and (num ~= -math.huge) and (num ~= math.huge) then
     return num
   end
   return starting_num
@@ -204,7 +244,7 @@ function doKeyboard(title, starting_str, special)
   local shift_mode = 0
   local layer
   local exit = false
-  if starting_str ~= nil then
+  if starting_str then
     local str = starting_str
   end
   local cursor = #str+1
@@ -242,16 +282,9 @@ function doKeyboard(title, starting_str, special)
         end
       end
 
-      Font.fmPrint(32, screen_mode.height - 64, 1, "  Enter")
-      Graphics.drawImage(cross, 32, screen_mode.height - 68)
-      Font.fmPrint(screen_mode.width - 144, screen_mode.height - 64, 1, "  Back")
-      Graphics.drawImage(circle, screen_mode.width - 144, screen_mode.height - 68)
-      Font.fmPrint(screen_mode.width - 214, 32, 1, "    Cursor")
-      Graphics.drawImage(l1, screen_mode.width - 214, 28)
-      Graphics.drawImage(r1, screen_mode.width - 177.6, 28)
+      showControls(Control_sets.KEY_INPUT)
 
-      last_pad = ifBool(pad == nil, Pads.get(), pad)
-      pad = Pads.get()
+      getPad()
 
       if Pads.check(pad, PAD_UP) and not Pads.check(last_pad, PAD_UP) then
         if selected_key > 13 then selected_key = selected_key - 13 end
@@ -314,7 +347,7 @@ function doKeyboard(title, starting_str, special)
   until exit
 
   str = str:gsub("\7\7\7\7\7","\7")
-  if (str == "") or (str == nil) then
+  if (str == "") or (not str) then
     return starting_str
   end
   return str
@@ -324,13 +357,13 @@ function doFileSelect(title, starting_dir)
   local dir = starting_dir
   local ret
   repeat
-    if (dir ~= nil) then
+    if dir then
       last_dir = System.currentDirectory()
       print(last_dir)
       System.currentDirectory(dir)
       dir_path = System.currentDirectory()
     end
-    if (dir == nil) or (dir_path == last_dir) then
+    if (not dir) or (dir_path == last_dir) then
       local ret = doTextMenu(title, {
         {"mc0:/", "Memory Card 1", checkDevice("mc0:/")},
         {"mc1:/", "Memory Card 2", checkDevice("mc1:/")},
@@ -378,14 +411,9 @@ function doFileMenu(title, dir, path, hdd)
     end
 
     Font.fmPrint(32, screen_mode.height - 96, 0.5, path)
-    Font.fmPrint(32, screen_mode.height - 64, 1, "  Enter")
-    Graphics.drawImage(cross, 32, screen_mode.height - 68)
-    Font.fmPrint(screen_mode.width - 112, screen_mode.height - 64, 1, "  Up")
-    Graphics.drawImage(triangle, screen_mode.width - 112, screen_mode.height - 68)
+    showControls(Control_sets.DIR_TREE)
 
-    last_pad = ifBool(pad == nil, Pads.get(), pad)
-
-    pad = Pads.get()
+    getPad()
 
     if Pads.check(pad, PAD_UP) and not Pads.check(last_pad, PAD_UP) then
       if selected_item > 0 then selected_item = selected_item - 1 end
@@ -395,9 +423,9 @@ function doFileMenu(title, dir, path, hdd)
       if selected_item < item_count then selected_item = selected_item + 1 end
     end
 
-    if (dir[1].name == ".") then
-      if (selected_item == 1) then selected_item = 3 end
-      if (selected_item == 2) then selected_item = 0 end
+    if dir[1].name == "." then
+      if selected_item == 1 then selected_item = 3 end
+      if selected_item == 2 then selected_item = 0 end
     end
 
     Screen.flip()
@@ -421,19 +449,14 @@ function doTextMenu(title, menu_items, initial_selection)
 
     Font.fmPrint(32, 32, 1, title, OSDSYS_selected_color)
     for i = 1, item_count do
-
       Font.fmPrint(32, y, 1, menu_items[i][1], ifBool(selected_item == i, ifBool(menu_items[i][3], OSDSYS_selected_color, disabled_selected_color), ifBool(menu_items[i][3], OSDSYS_unselected_color, disabled_unselected_color)))
       y = y + 32
     end
 
-    Font.fmPrint(32, screen_mode.height - 141, 0.5, menu_items[selected_item][2])
-    Font.fmPrint(32, screen_mode.height - 64, 1, "  Enter")
-    Graphics.drawImage(cross, 32, screen_mode.height - 68)
-    Font.fmPrint(screen_mode.width - 144, screen_mode.height - 64, 1, "  Back")
-    Graphics.drawImage(circle, screen_mode.width - 144, screen_mode.height - 68)
+    Font.fmPrint(32, screen_mode.height - 144, 0.5, menu_items[selected_item][2])
+    showControls(Control_sets.ENTER_BACK)
 
-    last_pad = ifBool(pad == nil, Pads.get(), pad)
-    pad = Pads.get()
+    getPad()
 
     if Pads.check(pad, PAD_UP) and not Pads.check(last_pad, PAD_UP) then
       if selected_item > 1 then selected_item = selected_item - 1 end
@@ -491,14 +514,15 @@ function OSDM_mainMenu(initial_selection)
 
 end
 
-function OSDM_OSDSYS()
-  ret = doTextMenu("PS1 Options", {
-    {"Use DKWDRV: " .. ifBool(cdrom_use_dkwdrv, "On", "Off"), "Enables/disables launching DKWDRV for PS1 discs.", true},
-    {"DKWDRV Path: [...]", "custom path to DKWDRV.ELF. The path MUST be on the memory card.\nCurrent Path: " .. path_DKWDRV_ELF, cdrom_use_dkwdrv},
-    {"Fast Disc Speed: " .. ifBool(ps1drv_enable_fast, "On", "Off"), "Will enable fast disc speed for PS1 discs when not using DKWDRV.", not cdrom_use_dkwdrv},
-    {"Texture Smoothing: " .. ifBool(ps1drv_enable_smooth, "On", "Off"), "Will enable texture smoothing for PS1 discs when not using DKWDRV.", not cdrom_use_dkwdrv},
-    {"Use PS1VModeNeg: " .. ifBool(ps1drv_use_ps1vn, "On", "Off"), "Custom path to DKWDRV.ELF. The path MUST be on the memory card.", not cdrom_use_dkwdrv}
-  })
+function OSDM_OSDSYS(initial_selection)
+  ret = doTextMenu("OSDSYS Options", {
+    {"Korbo please add details", "Korbo please add details", true},
+    {"Korbo please add details", "Korbo please add details", true},
+    {"Korbo please add details", "Korbo please add details", true},
+    {"Korbo please add details", "Korbo please add details", true},
+    {"Korbo please add details", "Korbo please add details", true}
+  }, initial_selection)
+  return ret
 end
 
 function OSDM_PS1(initial_selection)
@@ -506,14 +530,14 @@ function OSDM_PS1(initial_selection)
   if osdmenu_variant == 1 then
     ret = doTextMenu("PS1 Options", {
       {"Use DKWDRV: " .. ifBool(cdrom_use_dkwdrv, "On", "Off"), "Enables/disables launching DKWDRV for PS1 discs.", true},
-      {"DKWDRV Path: [...]", "custom path to DKWDRV.ELF. The path MUST be on the memory card.\nCurrent Path: " .. path_DKWDRV_ELF, cdrom_use_dkwdrv},
+      {"DKWDRV Path: [...]", "Custom path to DKWDRV.ELF. The path MUST be on the memory card.\nCurrent Path: " .. path_DKWDRV_ELF, cdrom_use_dkwdrv},
       {"Fast Disc Speed: " .. ifBool(ps1drv_enable_fast, "On", "Off"), "Will enable fast disc speed for PS1 discs when not using DKWDRV.", not cdrom_use_dkwdrv},
       {"Texture Smoothing: " .. ifBool(ps1drv_enable_smooth, "On", "Off"), "Will enable texture smoothing for PS1 discs when not using DKWDRV.", not cdrom_use_dkwdrv},
-      {"Use PS1VModeNeg: " .. ifBool(ps1drv_use_ps1vn, "On", "Off"), "Custom path to DKWDRV.ELF. The path MUST be on the memory card.", not cdrom_use_dkwdrv}
+      {"Use PS1VModeNeg: " .. ifBool(ps1drv_use_ps1vn, "On", "Off"), "Korbo please add details", not cdrom_use_dkwdrv}
     }, initial_selection)
     if ret == 2 then
       result = doFileSelect("DKWDRV Path", path_DKWDRV_ELF)
-      if result ~= nil then
+      if result then
         path_DKWDRV_ELF = result
       end
     elseif ret == 3 then
@@ -552,7 +576,7 @@ end
 menu_functions = {
   [1] = {rootMenu, nil},
   [2] = {OSDM_mainMenu, nil},
-  [3] = {dummy, nil},
+  [3] = {OSDM_OSDSYS, nil},
   [4] = {OSDM_PS1, nil},
   [5] = {dummy, nil},
 }
@@ -574,6 +598,8 @@ menu_calls = {
     {Exit_type.REPEAT}
   },
   {
+    {Exit_type.FUNCTION, dummy},
+    {Exit_type.FUNCTION, dummy},
     {Exit_type.FUNCTION, dummy},
     {Exit_type.FUNCTION, dummy},
     {Exit_type.FUNCTION, dummy}
@@ -617,10 +643,12 @@ function newTextMenu(id, initial_selection)
     elseif call_info[1] == Exit_type.REPEAT then
       do_again = true
     end
-  until (not do_again)
+  until not do_again
 end
 
 -- loadCfg("mc0:/SYS-CONF/OSDMENU.CNF", 0)
+
+
 
 -- int = 12345
 -- str = "test"
