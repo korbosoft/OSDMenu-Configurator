@@ -66,10 +66,15 @@ function breakString(index, str)
   return str
 end
 
-function doNumpad(title, number, signed)
+function doNumpad(title, starting_num, signed)
   local exit = false
-
-  local str = tostring(number)
+  local num = starting_num
+  local str
+  if (num ~= nil) and (num ~= 1e309) and (num ~= -1e309) then
+    str = string.format("%.f", num)
+  else
+    str = "";
+  end
 
   local keys = {
     "123",
@@ -114,8 +119,7 @@ function doNumpad(title, number, signed)
       Graphics.drawImage(l1, screen_mode.width - 214, 28)
       Graphics.drawImage(r1, screen_mode.width - 177.6, 28)
 
-      last_pad = pad
-      if last_pad == nil then last_pad = 0 end
+      last_pad = ifBool(pad == nil, Pads.get(), pad)
       pad = Pads.get()
 
       if Pads.check(pad, PAD_UP) and not Pads.check(last_pad, PAD_UP) then
@@ -146,7 +150,7 @@ function doNumpad(title, number, signed)
       end
 
       Screen.flip()
-      if Pads.check(pad, PAD_CIRCLE) and not Pads.check(last_pad, PAD_CIRCLE) then return nil end
+      if Pads.check(pad, PAD_CIRCLE) and not Pads.check(last_pad, PAD_CIRCLE) then return starting_num end
     until Pads.check(pad, PAD_CROSS) and not Pads.check(last_pad, PAD_CROSS)
 
     local x = (selected_key - 1) % 3 + 1
@@ -171,10 +175,14 @@ function doNumpad(title, number, signed)
 
   until exit
 
-  return tonumber(str)
+  num = tonumber(str)
+  if (num ~= nil) and (num ~= math.huge) and (num ~= -math.huge) then
+    return num
+  end
+  return starting_num
 end
 
-function doKeyboard(title, str, special)
+function doKeyboard(title, starting_str, special)
   local exit = false
 
   local keys = {
@@ -196,6 +204,9 @@ function doKeyboard(title, str, special)
   local shift_mode = 0
   local layer
   local exit = false
+  if starting_str ~= nil then
+    local str = starting_str
+  end
   local cursor = #str+1
   repeat
   layer = (shift_mode > 0 and 1 or 0) + 1
@@ -239,8 +250,7 @@ function doKeyboard(title, str, special)
       Graphics.drawImage(l1, screen_mode.width - 214, 28)
       Graphics.drawImage(r1, screen_mode.width - 177.6, 28)
 
-      last_pad = pad
-      if last_pad == nil then last_pad = 0 end
+      last_pad = ifBool(pad == nil, Pads.get(), pad)
       pad = Pads.get()
 
       if Pads.check(pad, PAD_UP) and not Pads.check(last_pad, PAD_UP) then
@@ -270,7 +280,7 @@ function doKeyboard(title, str, special)
       if (selected_key == 52) and (special == false) then selected_key = 51 end
 
       Screen.flip()
-      if Pads.check(pad, PAD_CIRCLE) and not Pads.check(last_pad, PAD_CIRCLE) then return nil end
+      if Pads.check(pad, PAD_CIRCLE) and not Pads.check(last_pad, PAD_CIRCLE) then return starting_str end
     until Pads.check(pad, PAD_CROSS) and not Pads.check(last_pad, PAD_CROSS)
 
     local x = (selected_key - 1) % 13 + 1
@@ -303,36 +313,94 @@ function doKeyboard(title, str, special)
 
   until exit
 
-  return str:gsub("\7\7\7\7\7","\7")
+  str = str:gsub("\7\7\7\7\7","\7")
+  if (str == "") or (str == nil) then
+    return starting_str
+  end
+  return str
 end
 
 function doFileSelect(title, starting_dir)
-  dir = starting_dir
+  local dir = starting_dir
+  local ret
   repeat
-  if dir == nil then
-    local ret = doTextMenu(title, {
-      {"mc0:/", "", true},
-      {"mc1:/", "", true},
-      {"hdd0:/", "", true},
-    }, 1)
-    if ret == 0 then
-      return 0
-    elseif ret == 1 then
-      dir = "mc0:/"
-    elseif ret == 2 then
-      dir = "mc1:/"
-    elseif ret == 3 then
-      dir = "hdd0:/"
+    if (dir == nil) or (dir == System.currentDirectory()) then
+      local ret = doTextMenu(title, {
+        {"mc0:/", "Memory Card 1", checkDevice("mc0:/")},
+        {"mc1:/", "Memory Card 2", checkDevice("mc1:/")},
+        {"hdd0:/", "Expansion Bay Storage", checkDevice("hdd0:/")},
+      }, 1)
+      if ret == 0 then
+        return nil
+      elseif ret == 1 then
+        dir = "mc0:/"
+      elseif ret == 2 then
+        dir = "mc1:/"
+      elseif ret == 3 then
+        dir = "hdd0:"
+      end
+      System.currentDirectory(dir)
     end
-  end
-  System.currentDirectory(dir)
-  info = System.listDirectory()
-  ret = doFileMenu(title, info)
-  until true
+    ret = doFileMenu(title, System.listDirectory(), System.currentDirectory())
+    if ret[2] then
+      dir = System.currentDirectory(ret[1])
+    else
+      return ret[1]
+    end
+  until false
 end
 
-function doFileMenu(title)
+function doFileMenu(title, dir, path)
+  local item_count = #dir
 
+  local seperator = ifBool(hdd, "\\", "/")
+
+  local selected_item = 0
+  local current_item = 0
+
+  repeat
+    local y = 112
+    Screen.clear()
+
+    Font.fmPrint(32, 32, 1, title, OSDSYS_selected_color)
+    Font.fmPrint(32, y - 16, 0.5, "../", ifBool(selected_item == 0, OSDSYS_selected_color, OSDSYS_unselected_color))
+    for i = ifBool(dir[1].name == ".", 3, 1), 16 do
+      if i <= item_count then
+        Font.fmPrint(32, y, 0.5, ifBool(dir[i].directory, dir[i].name .. "/", dir[i].name), ifBool(selected_item == i, OSDSYS_selected_color, OSDSYS_unselected_color))
+        y = y + 16
+      end
+    end
+
+    Font.fmPrint(32, screen_mode.height - 96, 0.5, path)
+    Font.fmPrint(32, screen_mode.height - 64, 1, "  Enter")
+    Graphics.drawImage(cross, 32, screen_mode.height - 68)
+    Font.fmPrint(screen_mode.width - 112, screen_mode.height - 64, 1, "  Up")
+    Graphics.drawImage(triangle, screen_mode.width - 112, screen_mode.height - 68)
+
+    last_pad = ifBool(pad == nil, Pads.get(), pad)
+
+    pad = Pads.get()
+
+    if Pads.check(pad, PAD_UP) and not Pads.check(last_pad, PAD_UP) then
+      if selected_item > 0 then selected_item = selected_item - 1 end
+    end
+
+    if Pads.check(pad, PAD_DOWN) and not Pads.check(last_pad, PAD_DOWN) then
+      if selected_item < item_count then selected_item = selected_item + 1 end
+    end
+
+    if (dir[1].name == ".") then
+      if (selected_item == 1) then selected_item = 3 end
+      if (selected_item == 2) then selected_item = 0 end
+    end
+
+    Screen.flip()
+
+    if Pads.check(pad, PAD_TRIANGLE) and not Pads.check(last_pad, PAD_TRIANGLE) then return {".." .. seperator, true} end
+
+  until Pads.check(pad, PAD_CROSS) and not Pads.check(last_pad, PAD_CROSS)
+  if selected_item == 0 then return {".." .. seperator, true} end
+  return {path .. seperator .. dir[selected_item].name, dir[selected_item].directory}
 end
 
 function doTextMenu(title, menu_items, initial_selection)
@@ -342,35 +410,36 @@ function doTextMenu(title, menu_items, initial_selection)
   local current_item = 1
 
   repeat
-      local y = 96
-      Screen.clear()
+    local y = 96
+    Screen.clear()
 
-      Font.fmPrint(32, 32, 1, title, OSDSYS_selected_color)
-      for i = 1, item_count do
-        Font.fmPrint(32, y, 1, menu_items[i][1], ifBool(i == selected_item, ifBool(menu_items[i][3], OSDSYS_selected_color, disabled_selected_color), ifBool(menu_items[i][3], OSDSYS_unselected_color, disabled_unselected_color)))
-        y = y + 32
-      end
+    Font.fmPrint(32, 32, 1, title, OSDSYS_selected_color)
+    for i = 1, item_count do
 
-      Font.fmPrint(32, screen_mode.height - 141, 0.5, menu_items[selected_item][2])
-      Font.fmPrint(32, screen_mode.height - 64, 1, "  Enter")
-      Graphics.drawImage(cross, 32, screen_mode.height - 68)
-      Font.fmPrint(screen_mode.width - 144, screen_mode.height - 64, 1, "  Back")
-      Graphics.drawImage(circle, screen_mode.width - 144, screen_mode.height - 68)
+      Font.fmPrint(32, y, 1, menu_items[i][1], ifBool(selected_item == i, ifBool(menu_items[i][3], OSDSYS_selected_color, disabled_selected_color), ifBool(menu_items[i][3], OSDSYS_unselected_color, disabled_unselected_color)))
+      y = y + 32
+    end
 
-      last_pad = pad
-      pad = Pads.get()
+    Font.fmPrint(32, screen_mode.height - 141, 0.5, menu_items[selected_item][2])
+    Font.fmPrint(32, screen_mode.height - 64, 1, "  Enter")
+    Graphics.drawImage(cross, 32, screen_mode.height - 68)
+    Font.fmPrint(screen_mode.width - 144, screen_mode.height - 64, 1, "  Back")
+    Graphics.drawImage(circle, screen_mode.width - 144, screen_mode.height - 68)
 
-      if Pads.check(pad, PAD_UP) and not Pads.check(last_pad, PAD_UP) then
-        if selected_item > 1 then selected_item = selected_item - 1 end
-      end
+    last_pad = ifBool(pad == nil, Pads.get(), pad)
+    pad = Pads.get()
 
-      if Pads.check(pad, PAD_DOWN) and not Pads.check(last_pad, PAD_DOWN) then
-        if selected_item < item_count then selected_item = selected_item + 1 end
-      end
+    if Pads.check(pad, PAD_UP) and not Pads.check(last_pad, PAD_UP) then
+      if selected_item > 1 then selected_item = selected_item - 1 end
+    end
 
-      Screen.flip()
+    if Pads.check(pad, PAD_DOWN) and not Pads.check(last_pad, PAD_DOWN) then
+      if selected_item < item_count then selected_item = selected_item + 1 end
+    end
 
-      if Pads.check(pad, PAD_CIRCLE) and not Pads.check(last_pad, PAD_CIRCLE) then return 0 end
+    Screen.flip()
+
+    if Pads.check(pad, PAD_CIRCLE) and not Pads.check(last_pad, PAD_CIRCLE) then return 0 end
 
   until (Pads.check(pad, PAD_CROSS) and not Pads.check(last_pad, PAD_CROSS)) and menu_items[selected_item][3]
   return selected_item
@@ -380,7 +449,10 @@ function rootMenu(initial_selection)
   local ret = doTextMenu("OSDMenu Configurator", {
     {"Configure OSDMenu", "", true},
     {"Configure HOSDMenu", "", true},
-    {"Configure OSDMenu MBR", "", true}
+    {"Configure OSDMenu MBR", "", true},
+    {"Configure eGSM", "", true},
+    {"Load Configuration", "", true},
+    {"Save Configuration", "", true}
   }, initial_selection)
   if ret == 0 then
     return -Menu_ids.ROOT
@@ -434,10 +506,10 @@ function OSDM_PS1(initial_selection)
       {"Use PS1VModeNeg: " .. ifBool(ps1drv_use_ps1vn, "On", "Off"), "Custom path to DKWDRV.ELF. The path MUST be on the memory card.", not cdrom_use_dkwdrv}
     }, initial_selection)
     if ret == 2 then
-      local result = doKeyboard("DKWDRV Path", path_DKWDRV_ELF, false)
-      if result ~= nil then
-        path_DKWDRV_ELF = result
-      end
+      path_DKWDRV_ELF = doKeyboard("DKWDRV Path", path_DKWDRV_ELF, false)
+--       if result ~= nil then
+--         path_DKWDRV_ELF = result
+--       end
     elseif ret == 3 then
       ps1drv_enable_fast = not ps1drv_enable_fast
     elseif ret == 4 then
@@ -483,14 +555,17 @@ menu_calls = {
   {
     {Exit_type.NEW_MENU, Menu_ids.OSDMENU},
     {Exit_type.NEW_MENU, Menu_ids.OSDMENU},
-    {Exit_type.NEW_MENU, Menu_ids.OSDMENU}
+    {Exit_type.NEW_MENU, Menu_ids.OSDMENU},
+    {Exit_type.FUNCTION, dummy},
+    {Exit_type.FUNCTION, dummy},
+    {Exit_type.FUNCTION, dummy}
   },
   {
     {Exit_type.NEW_MENU, Menu_ids.OSDSYS},
     {Exit_type.NEW_MENU, Menu_ids.PS1},
     {Exit_type.REPEAT},
     {Exit_type.REPEAT},
-    {Exit_type.REPEAT},
+    {Exit_type.REPEAT}
   },
   {
     {Exit_type.FUNCTION, dummy},
@@ -511,7 +586,7 @@ menu_calls = {
   },
 }
 
-function newMenu(id, initial_selection)
+function newTextMenu(id, initial_selection)
   local current_id = id
   local ret = 1
   repeat
@@ -541,12 +616,14 @@ end
 
 -- loadCfg("mc0:/SYS-CONF/OSDMENU.CNF", 0)
 
+-- int = 12345
+str = "test"
 while true do
   Screen.clear()
 --   doKeyboard("Keyboard Test 1", "12345", true)
-  doNumpad("Keyboard Test 2", 12345, false)
---   print(listDirectory())
---   doFileSelect("test")
+--   int = doNumpad("Keyboard Test 2", int, false)
+--   print(system.listDirectory())
+  str = doFileSelect(str)
 --   newMenu(Menu_ids.ROOT, 1)
   Screen.flip()
   --Screen.waitVblankStart()

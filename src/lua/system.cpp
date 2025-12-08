@@ -42,7 +42,7 @@ static int lua_setCurrentDirectory(lua_State *L)
 	// if absolute path (contains [drive]:path/)
 	if (strchr(path, ':'))
 	{
-	      strcpy(temp_path,path);
+        strcpy(temp_path,path);
 	}
 	else // relative path
 	{
@@ -65,10 +65,10 @@ static int lua_setCurrentDirectory(lua_State *L)
            else
            {
 	      getcwd(temp_path, 256);
-	      strcat(temp_path,"/");
+	      strcat(temp_path, "/");
 	      strcat(temp_path,path);
 	   }
-        }
+    }
 
         printf("changing directory to %s\n",__ps2_normalize_path(temp_path));
         chdir(__ps2_normalize_path(temp_path));
