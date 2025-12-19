@@ -379,8 +379,9 @@ function doFileSelect(title, starting_dir)
         dir = "hdd0:/"
       end
     end
+--     dir = dir:gsub("")
     System.currentDirectory(dir)
-    ret = doFileMenu(title, System.listDirectory(), System.currentDirectory(), dir:sub(1, 3) == "hdd")
+    ret = doFileMenu(title, System.listDirectory(), System.currentDirectory(), (dir:sub(1, 3) == "hdd") or (dir:sub(1, 4) == "part"))
     if ret[2] then
       dir = ret[1]
     else
@@ -522,6 +523,10 @@ function OSDM_OSDSYS(initial_selection)
     {"Korbo please add details", "Korbo please add details", true},
     {"Korbo please add details", "Korbo please add details", true}
   }, initial_selection)
+  if ret == 0 then
+    return -Menu_ids.OSDMENU
+  end
+
   return ret
 end
 
@@ -625,8 +630,6 @@ function newTextMenu(id, initial_selection)
     local do_again = false
     local current_function = menu_functions[current_id]
     ret = current_function[1](ret, current_function[2])
-    print(ret)
-    print(current_id)
     local call_info = nil;
     if ret > 0 then
       call_info = menu_calls[current_id][ret]
@@ -646,18 +649,19 @@ function newTextMenu(id, initial_selection)
   until not do_again
 end
 
--- loadCfg("mc0:/SYS-CONF/OSDMENU.CNF", 0)
+loadCfg("mc0:/SYS-CONF/OSDMENU.CNF", 0)
 
-
-
+-- mount_hdd();
 -- int = 12345
--- str = "test"
+str = "test"
 while true do
   Screen.clear()
 --   doKeyboard("Keyboard Test 1", "12345", true)
 --   int = doNumpad("Keyboard Test 2", int, false)
---   str = doFileSelect(str, "mc0:/")
-  newTextMenu(Menu_ids.ROOT, 1)
+
+  str = doFileSelect(str, "mc0:/")
+--   newTextMenu(Menu_ids.ROOT, 1)
+
   Screen.flip()
   --Screen.waitVblankStart()
 end

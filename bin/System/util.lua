@@ -6,6 +6,16 @@ function ifTable(index, values)
   return values[index]
 end
 
+partition_list = {}
+
+function mount_hdd()
+  local partitions = System.listDirectory("hdd0:/")
+  for i = 1, #partitions do
+    System.fileXioMount("hdd0:" .. partitions[i].name , "part" .. i .. ":", FIO_MT_RDWR)
+    partition_list[partitions[i].name] = i
+  end
+end
+
 function manual_gsub(s, pattern, replacement) -- using gsub the way i was in doKeyboard was causing a buffer overflow
   local result = ""
   local last_pos = 1

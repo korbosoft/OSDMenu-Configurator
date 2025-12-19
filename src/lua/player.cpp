@@ -28,7 +28,7 @@ const char * runScript(const char* script, bool isStringBuffer )
     luaSystem_init(L);
     luaSound_init(L);
     luaRender_init(L);
-    luaRegex_init(L);
+    luaPCRE2_init(L);
 #ifdef PS2KBD
 	luaKeyboardInit(L);
 #endif

@@ -61,27 +61,19 @@ local cfg_buf = nil;
 config = {}
 
 function parseConfig(data)
-  for line in data:gmatch("([^\n]*)\n?") do
-    local key
-    local value
---     print(line)
-    -- Match the key and value in the line
-    local results = regex.search(line, "^(?!#)([^=]+?)\\s*?=\\s*(.*)")
-    if results ~= nil then
-      key = results[1]
-      value = results[2]
---       print(key .. "=" .. value)
-    end
-    if key and value then
-      if config[key] then
-        if type(config[key]) == "table" then
-          table.insert(config[key], value)
-        else
-          config[key] = {config[key], value}
-        end
+  for index1, result in pairs(PCRE2.match(data, "^(?!#)([^=]+?)\\s*?=[^\\S\\n]*(.*)", PCRE2_MULTILINE)) do
+    full = result[1]
+    key = result[2]
+    value = result[3]
+--     print(key, " = ", value)
+    if config[key] then
+      if type(config[key]) == "table" then
+        table.insert(config[key], value)
       else
-        config[key] = value
+        config[key] = {config[key], value}
       end
+    else
+      config[key] = value
     end
   end
 end
@@ -105,9 +97,9 @@ function getBooleanValue(key)
 end
 
 function getColorValue(key)
-  local matches = regex.search(config[key], "(0x..).*?(0x..).*?(0x..).*?(0x..)")
+  local matches = PCRE2.match(config[key], "(0x..).*?", 0)
 
-  return Color.new(matches[1], matches[2], matches[3], matches[4])
+  return Color.new(matches[1][1], matches[2][1], matches[3][1], matches[4][1])
 end
 
 function loadCfg(path, version)
