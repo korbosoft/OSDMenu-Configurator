@@ -11,8 +11,8 @@ partition_list = {}
 function mount_hdd()
   local partitions = System.listDirectory("hdd0:/")
   for i = 1, #partitions do
-    System.fileXioMount("hdd0:" .. partitions[i].name , "part" .. i .. ":", FIO_MT_RDWR)
-    partition_list[partitions[i].name] = i
+    System.fileXioMount("hdd0:" .. partitions[i].name , "pfs" .. i .. ":", FIO_MT_RDWR)
+    partition_list[partitions[i].name] = "pfs" .. i .. ":"
   end
 end
 

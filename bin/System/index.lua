@@ -75,7 +75,8 @@ Menu_ids = {
   OSDMENU = 2,
   OSDSYS = 3,
   PS1 = 4,
-  MENU_ITEMS = 5
+  MENU_ITEMS = 5,
+  GSM = 6
 }
 
 function showControls(control_set)
@@ -379,11 +380,14 @@ function doFileSelect(title, starting_dir)
         dir = "hdd0:/"
       end
     end
---     dir = dir:gsub("")
+
     System.currentDirectory(dir)
-    ret = doFileMenu(title, System.listDirectory(), System.currentDirectory(), (dir:sub(1, 3) == "hdd") or (dir:sub(1, 4) == "part"))
+    ret = doFileMenu(title, System.listDirectory(), System.currentDirectory(), (dir:sub(1, 4) == "hdd0") or (dir:sub(1, 3) == "pfs"))
     if ret[2] then
       dir = ret[1]
+    elseif ret[1]:sub(1, 4) == "hdd0" then
+      print(partition_list[ret[1]:sub(7)])
+      dir = "a" .. partition_list[ret[1]:sub(7)]
     else
       return ret[1]
     end
@@ -651,7 +655,7 @@ end
 
 loadCfg("mc0:/SYS-CONF/OSDMENU.CNF", 0)
 
--- mount_hdd();
+mount_hdd();
 -- int = 12345
 str = "test"
 while true do
