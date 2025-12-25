@@ -704,7 +704,7 @@ static int lua_fileXioUmount(lua_State *L) {
 	FILEXIO_DEPENDENCY();
 	int argc = lua_gettop(L);
 	if (argc != 1) return luaL_error(L, "wrong number of arguments");
-	const char* mountpoint = NULL;
+	const char* mountpoint = luaL_checkstring(L, 1);
     int r = fileXioUmount(mountpoint);
 
     lua_pushinteger(L, r);

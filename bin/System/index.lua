@@ -1,12 +1,15 @@
-dofile("System/util.lua");
-dofile("System/config.lua");
-dofile("System/generator.lua");
+dofile("System/util.lua")
+dofile("System/config.lua")
+dofile("System/generator.lua")
 
 Font.fmLoad()
 
-function dummy()
+function dummy(str)
   Screen.clear()
-  Font.fmPrint(32, 32, 2, "SORRY NOTHING")
+  if not str then
+    str = "SORRY NOTHING"
+  end
+  Font.fmPrint(32, 32, 2, str)
   Screen.flip()
   while 1 do end
 end
@@ -50,14 +53,26 @@ Control_sets = {
     {x = 32, y = -64, label = "  Enter", icons = {{tex = cross}}},
     {x = -144, y = -64, label = "  Back", icons = {{tex = circle}}}
   },
-  DIR_TREE = {
+  FILE_SELECT = {
     {x = 32, y = -64, label = "  Enter", icons = {{tex = cross}}},
     {x = -112, y = -64, label = "  Up", icons = {{tex = triangle}}}
+  },
+  FILE_SELECT_EMPTY = {
+    {x = -112, y = -64, label = "  Up", icons = {{tex = triangle}}}
+  },
+  DIR_SELECT = {
+    {x = 32, y = -64, label = "  Enter", icons = {{tex = cross}}},
+    {x = -112, y = -64, label = "  Up", icons = {{tex = triangle}}},
+    {x = -214, y = 32, label = "  Select", icons = {{tex = square}}}
   },
   KEY_INPUT = {
     {x = 32, y = -64, label = "  Enter", icons = {{tex = cross}}},
     {x = -208, y = -64, label = "  Cancel", icons = {{tex = circle}}},
     {x = -214, y = 32, label = "    Cursor", icons = {{tex = l1}, {tex = r1, x = -177.6}}}
+  },
+  KEY_INPUT = {
+    {x = 32, y = -64, label = "  Enter", icons = {{tex = cross}}},
+    {x = -208, y = -64, label = "  Cancel", icons = {{tex = circle}}},
   },
   OK = {
     {x = 32, y = -64, label = "  OK", icons = {{tex = cross}}}
@@ -78,6 +93,10 @@ Menu_ids = {
   MENU_ITEMS = 5,
   GSM = 6
 }
+
+function softError(str)
+  dummy("oh damn")
+end
 
 function showControls(control_set)
   for i = 1, #control_set do
@@ -121,7 +140,7 @@ function doNumpad(title, starting_num, signed)
   if num and (num ~= -math.huge) and (num ~= math.huge) then
     str = string.format("%.f", num)
   else
-    str = "";
+    str = ""
   end
 
   local keys = {
@@ -359,10 +378,12 @@ function doFileSelect(title, starting_dir)
   local ret
   repeat
     if dir then
+      print(dir)
       last_dir = System.currentDirectory()
-      print(last_dir)
       System.currentDirectory(dir)
       dir_path = System.currentDirectory()
+      print(last_dir)
+      print(dir_path)
     end
     if (not dir) or (dir_path == last_dir) then
       local ret = doTextMenu(title, {
@@ -379,74 +400,99 @@ function doFileSelect(title, starting_dir)
       elseif ret == 3 then
         dir = "hdd0:/"
       end
+      System.currentDirectory(dir)
     end
 
-    System.currentDirectory(dir)
-    ret = doFileMenu(title, System.listDirectory(), System.currentDirectory(), (dir:sub(1, 4) == "hdd0") or (dir:sub(1, 3) == "pfs"))
+    ret = doDirTree(title, System.listDirectory(), System.currentDirectory(), (dir:sub(1, 4) == "hdd0") or (dir:sub(1, 4) == "pfs1"))
     if ret[2] then
       dir = ret[1]
     elseif ret[1]:sub(1, 4) == "hdd0" then
-      print(partition_list[ret[1]:sub(7)])
-      dir = "a" .. partition_list[ret[1]:sub(7)]
+      local mount_ret = mount_pfs(ret[1]:sub(7))
+      if mount_ret == -1 then
+        softError("Failed to mount \"" .. ret[1]:sub(7) .. "\".\nIs this partition in an acceptable format?")
+      else
+        dir = "pfs1:/"
+      end
     else
       return ret[1]
     end
   until false
 end
 
-function doFileMenu(title, dir, path, hdd)
+function doDirTree(title, dir, path, hdd)
   local item_count = #dir
 
   local seperator = ifBool(hdd, "\\", "/")
 
-  local selected_item = 0
-  local current_item = 0
+  local selected_item = ifBool(dir[1].name == ".", 3, 1)
+  local starting_item = ifBool(dir[1].name == ".", 2, 0)
+
+  local ret
 
   repeat
-    local y = 112
+    local y = 96
     Screen.clear()
 
     Font.fmPrint(32, 32, 1, title, OSDSYS_selected_color)
-    Font.fmPrint(32, y - 16, 0.5, "../", ifBool(selected_item == 0, OSDSYS_selected_color, OSDSYS_unselected_color))
-    for i = ifBool(dir[1].name == ".", 3, 1), 16 do
+    for i = starting_item + 1, starting_item + 16 do
       if i <= item_count then
-        Font.fmPrint(32, y, 0.5, ifBool(dir[i].directory, dir[i].name .. "/", dir[i].name), ifBool(selected_item == i, OSDSYS_selected_color, OSDSYS_unselected_color))
+        Font.fmPrint(32, y, 0.5, ifBool(dir[i].directory, dir[i].name .. seperator, dir[i].name), ifBool(selected_item == i, OSDSYS_selected_color, OSDSYS_unselected_color))
         y = y + 16
       end
     end
 
     Font.fmPrint(32, screen_mode.height - 96, 0.5, path)
-    showControls(Control_sets.DIR_TREE)
+    showControls(Control_sets.FILE_SELECT)
 
     getPad()
 
     if Pads.check(pad, PAD_UP) and not Pads.check(last_pad, PAD_UP) then
-      if selected_item > 0 then selected_item = selected_item - 1 end
+      if selected_item > starting_item + 1 then
+        selected_item = selected_item - 1
+      end
+      if selected_item == starting_item then
+        starting_item = starting_item - 1
+      end
     end
-
+--     print(starting_item)
+    print(selected_item)
+    print((starting_item + selected_item))
     if Pads.check(pad, PAD_DOWN) and not Pads.check(last_pad, PAD_DOWN) then
-      if selected_item < item_count then selected_item = selected_item + 1 end
+      if selected_item < item_count then
+        selected_item = selected_item + 1
+      end
+      if selected_item - starting_item > 16 then
+          if starting_item < item_count - 16 then
+            starting_item = starting_item + 1
+          end
+      end
     end
 
-    if dir[1].name == "." then
-      if selected_item == 1 then selected_item = 3 end
-      if selected_item == 2 then selected_item = 0 end
-    end
+--     if dir[selected_item].name == "." then
+--         if selected_item == starting_item then selected_item = 3 end
+--         if (selected_item == starting_item + 1) or (item_count == 2) then
+--           selected_item = 0
+--         end
+--     end
 
     Screen.flip()
 
-    if Pads.check(pad, PAD_TRIANGLE) and not Pads.check(last_pad, PAD_TRIANGLE) then return {".." .. seperator, true} end
+    if Pads.check(pad, PAD_TRIANGLE) and not Pads.check(last_pad, PAD_TRIANGLE) then
+      return {".." .. seperator, true}
+    end
 
   until Pads.check(pad, PAD_CROSS) and not Pads.check(last_pad, PAD_CROSS)
-  if selected_item == 0 then return {".." .. seperator, true} end
-  return {path .. ifBool(path:sub(#path, #path) == seperator, "", seperator) .. dir[selected_item].name, dir[selected_item].directory}
+  ret = path .. dir[selected_item].name
+  if ret:sub(-1, -1) ~= seperator then ret = ret .. seperator end
+
+  print(ret)
+  return {ret, dir[selected_item].directory}
 end
 
 function doTextMenu(title, menu_items, initial_selection)
   local item_count = #menu_items
 
   local selected_item = initial_selection
-  local current_item = 1
 
   repeat
     local y = 96
@@ -472,8 +518,6 @@ function doTextMenu(title, menu_items, initial_selection)
     end
 
     Screen.flip()
-
-    if Pads.check(pad, PAD_CIRCLE) and not Pads.check(last_pad, PAD_CIRCLE) then return 0 end
 
   until (Pads.check(pad, PAD_CROSS) and not Pads.check(last_pad, PAD_CROSS)) and menu_items[selected_item][3]
   return selected_item
@@ -634,7 +678,7 @@ function newTextMenu(id, initial_selection)
     local do_again = false
     local current_function = menu_functions[current_id]
     ret = current_function[1](ret, current_function[2])
-    local call_info = nil;
+    local call_info = nil
     if ret > 0 then
       call_info = menu_calls[current_id][ret]
     else
@@ -642,7 +686,7 @@ function newTextMenu(id, initial_selection)
     end
 
     if call_info[1] == Exit_type.FUNCTION then
-      call_info[2](call_info[3], call_info[4]);
+      call_info[2](call_info[3], call_info[4])
     elseif call_info[1] == Exit_type.NEW_MENU then
       do_again = true
       current_id = call_info[2]
@@ -655,7 +699,6 @@ end
 
 loadCfg("mc0:/SYS-CONF/OSDMENU.CNF", 0)
 
-mount_hdd();
 -- int = 12345
 str = "test"
 while true do

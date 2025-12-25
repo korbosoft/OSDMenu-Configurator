@@ -6,14 +6,27 @@ function ifTable(index, values)
   return values[index]
 end
 
-partition_list = {}
+mounted_partition = nil;
 
-function mount_hdd()
-  local partitions = System.listDirectory("hdd0:/")
-  for i = 1, #partitions do
-    System.fileXioMount("hdd0:" .. partitions[i].name , "pfs" .. i .. ":", FIO_MT_RDWR)
-    partition_list[partitions[i].name] = "pfs" .. i .. ":"
+function mount_pfs(name)
+--   local partitions = System.listDirectory("hdd0:/")
+  if name == mounted_partition then return 0 end
+  System.fileXioUmount("pfs1:")
+  System.fileXioMount("pfs1:", "hdd0:" .. name)
+  print(type(System.listDirectory("pfs1:/")))
+  if not System.listDirectory("pfs1:/") then
+    System.fileXioUmount("pfs1:")
+    if mounted_partition then
+      System.fileXioMount("pfs1:", "hdd0:" .. mounted_partition)
+    end
+    return -1
   end
+  mounted_partition = name
+  return 0
+end
+
+function get_mounted_partition()
+  return mounted_partition
 end
 
 function manual_gsub(s, pattern, replacement) -- using gsub the way i was in doKeyboard was causing a buffer overflow
